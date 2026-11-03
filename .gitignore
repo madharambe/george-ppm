@@ -15,6 +15,9 @@ captures/
 # binaries and dumps (large, regenerable)
 backup/_esp_flash/*.bin
 
+# vendored tooling (re-extract from pypi, not source we own)
+tools/_esplibs/
+
 # editor / OS
 .DS_Store
 Thumbs.db
