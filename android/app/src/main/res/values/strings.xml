@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">George PPM</string>
+    <string name="subtitle">Water flow · RPM · current monitor</string>
     <string name="scan">Scan &amp; Connect</string>
     <string name="disconnect">Disconnect</string>
+    <string name="reset_total">Reset Total</string>
+    <string name="sim_mode">Simulation mode</string>
+    <string name="sim_hint">Generates synthetic data so the UI can be exercised without the board.</string>
     <string name="status_idle">Idle</string>
-    <string name="debit">Debit</string>
-    <string name="total">Total</string>
-    <string name="rpm">RPM</string>
-    <string name="current">Arus</string>
-    <string name="battery">Baterai</string>
+    <string name="section_connection">Connection</string>
+    <string name="section_log">Event log</string>
 </resources>

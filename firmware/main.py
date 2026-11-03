@@ -99,8 +99,9 @@ def main():
         amps = cur.sample()
         bat.sample()
 
-        payload = '{"f":%.2f,"t":%.2f,"r":%d,"a":%.2f,"v":%s,"c":%d,"ms":%d}' % (
-            flow.lpm, flow.total_l, rpm, amps,
+        payload = '{"f":%.2f,"t":%.2f,"r":%d,"a":%s,"v":%s,"c":%d,"ms":%d}' % (
+            flow.lpm, flow.total_l, rpm,
+            ("%.2f" % amps) if cur.ok else "null",
             ("%.2f" % bat.volts) if bat.ok else "null",
             link.connected(), time.ticks_ms() & 0x7FFFFFFF)
         link.publish(payload)

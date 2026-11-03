@@ -3,8 +3,14 @@
 ## Advertisement
 
 - Device name: **GeorgePPM**
-- Advertising data: flags (LE only, discoverable) + complete local name
-- Scan response: 128-bit service UUID list
+- Advertising data: flags (3 B) + 128-bit service UUID list (18 B) = 21 B
+- Scan response: complete local name (11 B)
+
+**The split matters.** CoreBluetooth (iOS) filters scans on the *advertisement*
+packet, so the service UUID must live there. Android merges both packets, so it
+works either way — but advertising the name and putting the UUID in the scan
+response silently breaks iOS discovery. Verified byte layout in
+`tests/test_firmware_logic.py`.
 - Platform: ESP32 classic — **BLE only**, no Bluetooth Classic / SPP. MicroPython
   on ESP32 exposes BLE exclusively, so an SPP-based app cannot work here.
 

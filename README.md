@@ -27,6 +27,8 @@ George PPM/
 │   ├── ble_link.py      BLE GATT server (telemetry notify + commands)
 │   └── lcd.py           HD44780 over PCF8574
 ├── android/             Kotlin BLE client app  (see android/README.md)
+├── ios/                 SwiftUI + CoreBluetooth app (see ios/README.md)
+├── tests/               firmware logic tests, run under CPython
 ├── docs/
 │   ├── WIRING.md        full pin map, supply rules, dividers, power tree
 │   ├── BLE_PROTOCOL.md  UUIDs, JSON frame, MTU, commands
@@ -68,8 +70,10 @@ RPM      1450           Total   45.67 L       BLE        1
 | BLE GATT server | **Verified** — advertises as `GeorgePPM`, MTU 247 accepted |
 | LCD driver | **Verified** — contrast pot adjusted, text legible |
 | Sensor inputs | Wired per `docs/WIRING.md`; ACS712 not yet reporting (divider/sensor not connected), firmware shows `Arus -- A` rather than a fake number |
+| Firmware logic tests | **35/35 pass** (`python tests/test_firmware_logic.py`) — found and fixed a real RPM bug |
 | Android app | **Not compiled** — no Android SDK/Gradle on this machine (see `docs/RESEARCH.md` §5) |
-| APK | Does not exist yet |
+| iOS app | **Not compiled** — needs macOS + Xcode, neither exists here |
+| APK / .ipa | Do not exist yet |
 
 ## Board quirks worth remembering
 

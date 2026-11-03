@@ -46,12 +46,16 @@ class BleLink:
 
     # ---------------------------------------------------------- internals
     def _advertise(self):
+        # Layout matters for iOS: CoreBluetooth filters scans on the ADVERTISEMENT
+        # packet, so the 128-bit service UUID goes there. The name rides in the
+        # scan response (iOS exposes it as CBAdvertisementDataLocalNameKey).
+        # adv = flags(3) + UUID list(18) = 21 bytes, resp = name(11) bytes.
         name = _NAME.encode()
         adv = bytearray()
         adv += struct.pack("BBB", 2, 0x01, 0x06)          # flags: LE only, discoverable
-        adv += struct.pack("BB", len(name) + 1, 0x09) + name
+        adv += struct.pack("BB", 17, 0x07) + bytes(SERVICE_UUID)   # 128-bit UUID list
         resp = bytearray()
-        resp += struct.pack("BB", 17, 0x07) + bytes(SERVICE_UUID)   # 128-bit UUID list
+        resp += struct.pack("BB", len(name) + 1, 0x09) + name
         try:
             self.ble.gap_advertise(200000, adv, resp_data=resp)
         except Exception:

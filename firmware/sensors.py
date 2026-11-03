@@ -45,19 +45,24 @@ class Rpm:
         self.min_edge_us = min_edge_us
         self._last = 0
         self._period = 0
+        self._seen = False
         self._pin = Pin(pin_no, Pin.IN, Pin.PULL_UP)
         self._pin.irq(trigger=Pin.IRQ_FALLING, handler=self._isr)
 
     def _isr(self, p):
         now = time.ticks_us()
-        if self._last:
+        # An explicit flag, not "self._last != 0": the first edge can legitimately
+        # land at ticks_us() == 0 right after boot, and comparing to 0 threw that
+        # interval away (found by tests/test_firmware_logic.py).
+        if self._seen:
             d = time.ticks_diff(now, self._last)
             if d >= self.min_edge_us:
                 self._period = d
         self._last = now
+        self._seen = True
 
     def value(self):
-        if not self._period or not self._last:
+        if not self._seen or not self._period:
             return 0
         if time.ticks_diff(time.ticks_us(), self._last) > self.timeout_us:
             return 0

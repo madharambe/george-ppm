@@ -38,6 +38,8 @@ class BleClient(private val context: Context, private val listener: Listener) {
         fun onStatus(text: String)
         fun onTelemetry(t: Telemetry)
         fun onStateChanged(connected: Boolean, deviceLabel: String)
+        /** Link metadata; called on connect, on MTU change and on each RSSI poll. */
+        fun onMeta(mtu: Int, rssi: Int) {}
     }
 
     companion object {
@@ -58,6 +60,22 @@ class BleClient(private val context: Context, private val listener: Listener) {
     private var cmdChar: BluetoothGattCharacteristic? = null
     private var scanning = false
     private var discovered = false
+    private var mtuValue = 0
+    private var rssiValue = 0
+
+    /** BluetoothGatt has no RSSI subscription, so it has to be polled. */
+    private val rssiPoller = object : Runnable {
+        @SuppressLint("MissingPermission")
+        override fun run() {
+            val g = gatt ?: return
+            try {
+                g.readRemoteRssi()
+            } catch (e: SecurityException) {
+                // ignore
+            }
+            handler.postDelayed(this, 5000)
+        }
+    }
 
     fun isBluetoothReady(): Boolean = adapter != null && adapter.isEnabled
 
@@ -169,7 +187,12 @@ class BleClient(private val context: Context, private val listener: Listener) {
         gatt = null
         telemChar = null
         cmdChar = null
+        mtuValue = 0
+        handler.removeCallbacks(rssiPoller)
     }
+
+    @SuppressLint("MissingPermission")
+    fun resetTotal() = sendCommand("RESET")
 
     @SuppressLint("MissingPermission")
     fun sendCommand(cmd: String) {
@@ -213,6 +236,7 @@ class BleClient(private val context: Context, private val listener: Listener) {
                         val cur = gatt
                         if (cur === g && !discovered) cur.discoverServices()
                     }, 2500)
+                    handler.post(rssiPoller)
                 }
 
                 BluetoothProfile.STATE_DISCONNECTED -> {
@@ -225,8 +249,15 @@ class BleClient(private val context: Context, private val listener: Listener) {
 
         @SuppressLint("MissingPermission")
         override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
+            mtuValue = mtu
             listener.onStatus("MTU = $mtu")
+            listener.onMeta(mtuValue, rssiValue)
             if (!discovered) g.discoverServices()
+        }
+
+        override fun onReadRemoteRssi(g: BluetoothGatt, rssi: Int, status: Int) {
+            rssiValue = rssi
+            listener.onMeta(mtuValue, rssiValue)
         }
 
         @SuppressLint("MissingPermission")
