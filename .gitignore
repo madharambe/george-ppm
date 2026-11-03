@@ -1,0 +1,20 @@
+# python
+__pycache__/
+*.pyc
+
+# android / gradle
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# binaries and dumps (large, regenerable)
+backup/_esp_flash/*.bin
+
+# editor / OS
+.DS_Store
+Thumbs.db

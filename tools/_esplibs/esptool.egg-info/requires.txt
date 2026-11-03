@@ -1,0 +1,22 @@
+bitstring!=4.2.0,>=3.1.6
+cryptography>=2.1.4
+ecdsa>=0.16.0
+pyserial>=3.3
+reedsolo<1.8,>=1.5.3
+PyYAML>=5.1
+intelhex
+
+[:sys_platform != "win32"]
+argcomplete>=3
+
+[dev]
+pyelftools
+coverage~=6.0
+pre-commit
+pytest
+pytest-rerunfailures
+requests
+commitizen
+
+[hsm]
+python-pkcs11
