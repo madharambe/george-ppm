@@ -17,6 +17,7 @@ executed here, not merely simulated.
 | Project preflight (`tools/ios_preflight.py`) | **61/61 pass** |
 | CoreBluetooth delegate selectors vs Apple docs | 10/10 exact match |
 | BLE contract firmware ↔ iOS ↔ Android | 3 UUIDs + device name all match |
+| CI lint (`tools/ci_lint.py`) | **11/11 pass** — every `run:` block is bash-valid; picker tested on 4 runner images |
 | Builds as an iOS app | **still never** — needs Xcode/macOS |
 | Runs in the iOS Simulator | **never** — no simulator on Windows |
 
