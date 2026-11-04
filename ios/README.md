@@ -3,24 +3,47 @@
 SwiftUI + CoreBluetooth client for the same ESP32 telemetry protocol as the
 Android app.
 
-## Status: source-complete, logic verified, NEVER COMPILED
+## Status: partially COMPILED and RUN with a real Swift compiler
 
-This is a Windows machine: **no macOS, no Xcode, no iOS Simulator**. The Swift
-has never been through a compiler. What *has* been done:
+A **Swift 6.4.2 toolchain was installed on this Windows machine** (winget
+`Swift.Toolchain`, per-user, alongside the already-present MSVC 2022 + Windows
+SDK). That means the Foundation-only half of the app is genuinely compiled and
+executed here, not merely simulated.
 
 | Check | Result |
 |---|---|
+| **Swift compile + run** (`tools/swift_harness.cmd`) | **32/32 pass** — real swiftc, real execution |
 | iOS logic simulation (`tests/test_ios_logic_sim.py`) | **34/34 pass** |
-| Project preflight (`tools/ios_preflight.py`) | **39/39 pass** |
-| Swift source brace/paren balance | all 7 files balanced |
-| `project.yml` + workflow YAML parse | valid, targets/schemes wired correctly |
-| Test target / scheme / Info.plist keys | verified wired |
-| Swift compilation | **never attempted** — impossible here |
-| Runs in an iOS Simulator | **never** — no simulator exists on Windows |
+| Project preflight (`tools/ios_preflight.py`) | **49/49 pass** |
+| CoreBluetooth delegate selectors vs Apple docs | 10/10 exact match |
+| Builds as an iOS app | **still never** — needs Xcode/macOS |
+| Runs in the iOS Simulator | **never** — no simulator on Windows |
 
-The logic simulation mirrors `TelemetryFormatter.swift` and the decode rules,
-then runs the *same fixtures* and asserts the *same strings* as the XCTest suite.
-So behaviour is proven; only compilation is not.
+### Exactly what compiles here, and what cannot
+
+```
+Telemetry.swift          COMPILES + RUNS   (Foundation only)
+TelemetryFormatter.swift COMPILES + RUNS   (Foundation only)
+BleCentral.swift         needs CoreBluetooth   -> error: no such module 'CoreBluetooth'
+ContentView.swift        needs SwiftUI         -> error: no such module 'SwiftUI'
+GeorgePPMApp.swift       needs SwiftUI         -> error: no such module 'SwiftUI'
+Simulator.swift          needs Combine         -> ObservableObject / @Published unknown
+```
+
+So the JSON model and every display formatter are proven by execution; the
+SwiftUI views and the CoreBluetooth central are not, and cannot be, on Windows.
+
+### Running the Swift harness
+
+```powershell
+cmd /c "George PPM\tools\swift_harness.cmd"
+```
+
+It compiles the two Foundation files plus `tests/swift/main.swift` against the
+Windows SDK and runs the same assertions as the XCTest suite. Note the toolchain
+needs an explicit `-sdk` pointing at
+`%LOCALAPPDATA%\Programs\Swift\Platforms\6.4.2\Windows.platform\Developer\SDKs\Windows.sdk`,
+and `vcvars64.bat` for linking — both handled inside the .cmd.
 
 ## Building it — two paths
 

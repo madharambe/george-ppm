@@ -108,7 +108,99 @@ for f in app_swift + test_swift:
 
 print()
 print("=" * 66)
-print("6. CI workflow matches the project")
+print("6. CoreBluetooth delegate selectors")
+print("=" * 66)
+# Signatures taken from Apple's documentation JSON on 2026-11-04:
+#   https://developer.apple.com/tutorials/data/documentation/corebluetooth/
+#       cbcentralmanagerdelegate.json
+#       cbperipheraldelegate.json
+# In Swift these are @objc optional protocol methods: a WRONG signature still
+# compiles and simply never gets called. Only the argument labels matter for
+# dispatch, so those are what we compare.
+EXPECTED_SELECTORS = {
+    "centralManagerDidUpdateState": "_:",
+    "centralManager": "_:didDiscover:advertisementData:rssi:",
+    "centralManager#connect": "_:didConnect:",
+    "centralManager#failconnect": "_:didFailToConnect:error:",
+    "centralManager#disconnect": "_:didDisconnectPeripheral:error:",
+    "peripheral": "_:didDiscoverServices:",
+    "peripheral#chars": "_:didDiscoverCharacteristicsFor:error:",
+    "peripheral#notifstate": "_:didUpdateNotificationStateFor:error:",
+    "peripheral#value": "_:didUpdateValueFor:error:",
+    "peripheral#rssi": "_:didReadRSSI:error:",
+}
+
+
+def selectors_in(src):
+    """Extract (funcName, argLabelChain) for every func in the source."""
+    out = []
+    for m in re.finditer(r"func\s+(\w+)\s*\(", src):
+        name = m.group(1)
+        # walk forward to the matching close paren
+        i = m.end() - 1
+        depth = 0
+        params = ""
+        while i < len(src):
+            ch = src[i]
+            if ch == "(":
+                depth += 1
+                if depth == 1:
+                    i += 1
+                    continue
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            if depth >= 1:
+                params += ch
+            i += 1
+        # split top-level commas
+        parts, depth, cur = [], 0, ""
+        for ch in params:
+            if ch in "([<":
+                depth += 1
+            elif ch in ")]>":
+                depth -= 1
+            if ch == "," and depth == 0:
+                parts.append(cur)
+                cur = ""
+            else:
+                cur += ch
+        if cur.strip():
+            parts.append(cur)
+        labels = []
+        for p in parts:
+            p = p.strip()
+            if not p:
+                continue
+            head = p.split(":")[0].strip()
+            tok = head.split()
+            # "label name" -> label; "name" alone -> name is the label;
+            # "_ name" -> the label is "_"
+            labels.append(tok[0] if tok else "_")
+        # Swift selector form: name(_:second:) -> "_:second:"
+        out.append((name, "_:" + ":".join(labels[1:]) + ":" if len(labels) > 1
+                    else "_:"))
+    return out
+
+
+found = selectors_in(app_src)
+byname = {}
+for n, sel in found:
+    byname.setdefault(n, []).append(sel)
+
+for label, want in EXPECTED_SELECTORS.items():
+    fname = label.split("#")[0]
+    have = byname.get(fname, [])
+    ok = want in have
+    check("%-24s %s" % (fname, want), ok, "" if ok else ("found " + str(have)))
+    if ok:
+        # keep one match consumed so duplicate names do not all pass on one entry
+        have.remove(want)
+
+print()
+print("=" * 66)
+print("7. CI workflow matches the project")
 print("=" * 66)
 wf_path = os.path.join(REPO, ".github", "workflows", "ios.yml")
 check("workflow exists", os.path.exists(wf_path))

@@ -72,8 +72,11 @@ RPM      1450           Total   45.67 L       BLE        1
 | Sensor inputs | Wired per `docs/WIRING.md`; ACS712 not yet reporting (divider/sensor not connected), firmware shows `Arus -- A` rather than a fake number |
 | Firmware logic tests | **35/35 pass** (`python tests/test_firmware_logic.py`) — found and fixed a real RPM bug |
 | Android app | **Not compiled** — no Android SDK/Gradle on this machine (see `docs/RESEARCH.md` §5) |
-| iOS app | **Not compiled** — needs macOS + Xcode, neither exists here |
-| APK / .ipa | Do not exist yet |
+| iOS logic (Swift 6.4.2 on Windows) | **32/32 pass** — `Telemetry.swift` + `TelemetryFormatter.swift` compiled and executed |
+| iOS project preflight | **49/49 pass** — including 10/10 CoreBluetooth delegate selectors vs Apple docs |
+| iOS app as a whole | **Not built** — SwiftUI/CoreBluetooth need macOS; CI workflow is ready |
+| APK | **Exists** — `android/app/build/outputs/apk/debug/app-debug.apk` (5.60 MB, signed) |
+| .ipa | Does not exist yet — run `tools/publish_and_build.ps1` |
 
 ## Board quirks worth remembering
 
