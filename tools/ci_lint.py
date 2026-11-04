@@ -12,6 +12,7 @@ Run: python tools/ci_lint.py
 """
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -107,6 +108,53 @@ def main():
                 check("%-16s picks an iPhone" % label, got.startswith(expect_prefix), got or "(nothing)")
             else:
                 check("%-16s returns empty (workflow then fails loudly)" % label, got == "", got or "(empty)")
+
+    print()
+    print("=" * 66)
+    print("3. runner image is still available")
+    print("=" * 66)
+    # GitHub retires macOS images on a roughly yearly cadence and a retired label
+    # fails the job instantly. Verified 2026-11-04 against
+    # https://github.com/actions/runner-images/blob/main/README.md:
+    #   macOS 26, macOS 15 (+arm64) available; macOS 14 retired 2026-11-02.
+    RETIRED = {
+        "macos-11", "macos-12", "macos-13", "macos-14",
+    }
+    runs_on = str(wf["jobs"]["build"].get("runs-on", ""))
+    check("runs-on is set", bool(runs_on), runs_on)
+    check("runner image not in the retired list", runs_on not in RETIRED,
+          runs_on + ("  <- RETIRED, job will fail immediately" if runs_on in RETIRED else ""))
+    check("runner label is a macOS one", runs_on.startswith("macos"), runs_on)
+
+    print()
+    print("=" * 66)
+    print("4. action versions are current")
+    print("=" * 66)
+    # GitHub deprecates action majors over time (upload-artifact v3 was retired in
+    # Jan 2025), and a retired action fails the job. Ask gh for the latest tag
+    # when available, else fall back to the versions verified on 2026-11-04.
+    FALLBACK_LATEST = {"actions/checkout": 7, "actions/upload-artifact": 7}
+    text = open(WF, encoding="utf-8").read()
+    used = sorted(set(re.findall(r"uses:\s*([\w.\-/]+)@(v\d+)", text)))
+    check("workflow uses at least one action", bool(used))
+    for repo, tag in used:
+        major = int(tag[1:])
+        latest = None
+        if shutil.which("gh"):
+            try:
+                r = subprocess.run(
+                    ["gh", "api", "repos/%s/releases/latest" % repo, "--jq", ".tag_name"],
+                    capture_output=True, text=True, timeout=20)
+                if r.returncode == 0 and r.stdout.strip().startswith("v"):
+                    latest = int(r.stdout.strip()[1:].split(".")[0])
+            except Exception:
+                latest = None
+        if latest is None:
+            latest = FALLBACK_LATEST.get(repo)
+        if latest is None:
+            check("%s@%s (latest unknown, not checked)" % (repo, tag), True)
+            continue
+        check("%s@%s is current (latest v%d)" % (repo, tag, latest), major >= latest)
 
     print()
     print("=" * 66)

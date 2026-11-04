@@ -21,14 +21,18 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    # macOS 14 was RETIRED from GitHub Actions on 2026-11-02 (verified against
+    # actions/runner-images README on 2026-11-04). Available labels at that time:
+    # macos-15, macos-15-arm64, macos-26, macos-26-arm64, macos-latest.
+    # GitHub retires old images roughly yearly - tools/ci_lint.py checks this.
+    runs-on: macos-15
     timeout-minutes: 30
     defaults:
       run:
         working-directory: ios
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Toolchain versions
         run: |
@@ -69,7 +73,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: ios/TestResults.xcresult
@@ -92,7 +96,7 @@ jobs:
           ls -lh GeorgePPM-unsigned.ipa
 
       - name: Upload unsigned .ipa
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: GeorgePPM-unsigned-ipa
           path: ios/build/GeorgePPM-unsigned.ipa

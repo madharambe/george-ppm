@@ -12,12 +12,12 @@ executed here, not merely simulated.
 
 | Check | Result |
 |---|---|
-| **Swift compile + run** (`tools/swift_harness.cmd`) | **81/81 pass** — real swiftc, real execution |
+| **Swift compile + run** (`tools/swift_harness.cmd`) | **91/91 pass** — real swiftc, real execution |
 | iOS logic simulation (`tests/test_ios_logic_sim.py`) | **34/34 pass** |
 | Project preflight (`tools/ios_preflight.py`) | **61/61 pass** |
 | CoreBluetooth delegate selectors vs Apple docs | 10/10 exact match |
 | BLE contract firmware ↔ iOS ↔ Android | 3 UUIDs + device name all match |
-| CI lint (`tools/ci_lint.py`) | **11/11 pass** — every `run:` block is bash-valid; picker tested on 4 runner images |
+| CI lint (`tools/ci_lint.py`) | **17/17 pass** — bash syntax, picker on 4 runner images, runner label not retired, action majors current |
 | Builds as an iOS app | **still never** — needs Xcode/macOS |
 | Runs in the iOS Simulator | **never** — no simulator on Windows |
 

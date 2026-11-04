@@ -189,5 +189,62 @@ check("failure label mentions the reason", d5.statusLabel.contains("boom"), d5.s
 
 print("")
 print("==============================================================")
+print("10. decoder robustness (hostile / edge-case frames)")
+print("==============================================================")
+// A real BLE link can deliver a truncated frame, a stale firmware that sends a
+// different type, or a future firmware with extra keys. None of these may crash
+// the app, and none may be silently misinterpreted.
+
+// wrong JSON type: number sent as a string
+let wrongType = #"{"f":"12.34","t":45.67,"r":1450,"a":1.23,"v":12.64,"c":1,"ms":123456}"#
+check("string where a number is expected is rejected", Telemetry.parse(Data(wrongType.utf8)) == nil)
+
+// unknown extra keys from a newer firmware must not break an older app
+let extraKeys = #"{"f":1.0,"t":2.0,"r":3,"a":0.4,"v":12.0,"c":0,"ms":9,"future":"x","extra":true}"#
+if let t = Telemetry.parse(Data(extraKeys.utf8)) {
+    check("unknown keys are ignored", t.f == 1.0 && t.r == 3, String(t.r))
+} else {
+    check("unknown keys are ignored", false, "returned nil")
+}
+
+// surrounding whitespace / newlines
+let padded = "  \n" + liveFrame + "\n  "
+check("surrounding whitespace tolerated", Telemetry.parse(Data(padded.utf8)) != nil)
+
+// a very large uptime must not overflow
+let bigMs = #"{"f":0,"t":0,"r":0,"a":null,"v":null,"c":0,"ms":9223372036854775000}"#
+if let t = Telemetry.parse(Data(bigMs.utf8)) {
+    check("huge uptime survives", t.ms > 9_000_000_000_000_000_000, String(t.ms))
+} else {
+    check("huge uptime survives", false, "returned nil")
+}
+
+// negative flow (sensor noise / reversed mounting) must format, not crash
+let negative = #"{"f":-1.50,"t":0.10,"r":0,"a":-2.00,"v":12.00,"c":0,"ms":1000}"#
+if let t = Telemetry.parse(Data(negative.utf8)) {
+    let d = Dashboard.make(frame: t, simulate: false, state: .connected("x"), rssi: -40)
+    check("negative flow formats", d.flow == "-1.50", d.flow)
+    check("negative current formats", d.amps == "-2.00", d.amps)
+} else {
+    check("negative flow formats", false, "returned nil")
+}
+
+// zero battery is a value, not "absent"
+let zeroBat = #"{"f":0,"t":0,"r":0,"a":null,"v":0.00,"c":0,"ms":1}"#
+if let t = Telemetry.parse(Data(zeroBat.utf8)) {
+    let d = Dashboard.make(frame: t, simulate: false, state: .connected("x"), rssi: -40)
+    check("0.00 V decodes as a value, not nil", !d.batteryMissing && d.battery == "0.00", d.battery)
+    check("0.00 V is flagged low", d.batteryLow)
+} else {
+    check("0.00 V decodes as a value, not nil", false)
+}
+
+// an empty JSON object is missing every required key
+check("empty object rejected", Telemetry.parse(Data("{}".utf8)) == nil)
+// a JSON array is the wrong root type
+check("array root rejected", Telemetry.parse(Data("[1,2,3]".utf8)) == nil)
+
+print("")
+print("==============================================================")
 print("RESULT: \(passed) passed, \(failed) failed")
 print("==============================================================")
