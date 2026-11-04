@@ -200,7 +200,45 @@ for label, want in EXPECTED_SELECTORS.items():
 
 print()
 print("=" * 66)
-print("7. CI workflow matches the project")
+print("7. BLE contract: firmware <-> iOS <-> Android")
+print("=" * 66)
+# Three separate codebases must agree on these strings. A drift compiles
+# perfectly and simply never connects, so it is checked mechanically.
+
+fw_path = os.path.join(REPO, "firmware", "ble_link.py")
+fw_src = read(fw_path) if os.path.exists(fw_path) else ""
+fw = {
+    "service": (re.search(r'SERVICE_UUID\s*=\s*bluetooth\.UUID\("([^"]+)"\)', fw_src) or [None, ""])[1],
+    "telemetry": (re.search(r'TELEM_UUID\s*=\s*bluetooth\.UUID\("([^"]+)"\)', fw_src) or [None, ""])[1],
+    "command": (re.search(r'CMD_UUID\s*=\s*bluetooth\.UUID\("([^"]+)"\)', fw_src) or [None, ""])[1],
+    "name": (re.search(r'_NAME\s*=\s*"([^"]+)"', fw_src) or [None, ""])[1],
+}
+
+kt_path = os.path.join(REPO, "android", "app", "src", "main", "java", "com", "georgeppm", "monitor", "BleClient.kt")
+kt_src = read(kt_path) if os.path.exists(kt_path) else ""
+kt = {
+    "service": (re.search(r'SERVICE_UUID:\s*UUID\s*=\s*UUID\.fromString\("([^"]+)"\)', kt_src) or [None, ""])[1],
+    "telemetry": (re.search(r'TELEM_UUID:\s*UUID\s*=\s*UUID\.fromString\("([^"]+)"\)', kt_src) or [None, ""])[1],
+    "command": (re.search(r'CMD_UUID:\s*UUID\s*=\s*UUID\.fromString\("([^"]+)"\)', kt_src) or [None, ""])[1],
+}
+
+spec_src = read(os.path.join(app_dir, "BleSpec.swift"))
+sw = {
+    "service": (re.search(r'static let serviceUUID\s*=\s*"([^"]+)"', spec_src) or [None, ""])[1],
+    "telemetry": (re.search(r'static let telemetryUUID\s*=\s*"([^"]+)"', spec_src) or [None, ""])[1],
+    "command": (re.search(r'static let commandUUID\s*=\s*"([^"]+)"', spec_src) or [None, ""])[1],
+    "name": (re.search(r'static let deviceName\s*=\s*"([^"]+)"', spec_src) or [None, ""])[1],
+}
+
+for key in ("service", "telemetry", "command"):
+    check("firmware defines %s UUID" % key, bool(fw[key]), fw[key])
+    check("android matches firmware (%s)" % key, kt[key] == fw[key] and bool(fw[key]), kt[key])
+    check("iOS matches firmware (%s)" % key, sw[key] == fw[key] and bool(fw[key]), sw[key])
+check("device name agrees (firmware vs iOS)", fw["name"] == sw["name"] and bool(fw["name"]), fw["name"])
+
+print()
+print("=" * 66)
+print("8. CI workflow matches the project")
 print("=" * 66)
 wf_path = os.path.join(REPO, ".github", "workflows", "ios.yml")
 check("workflow exists", os.path.exists(wf_path))

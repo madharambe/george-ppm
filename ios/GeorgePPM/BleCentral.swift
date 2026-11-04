@@ -16,18 +16,12 @@ import CoreBluetooth
 ///    response.
 final class BleCentral: NSObject, ObservableObject {
 
-    enum LinkState: Equatable {
-        case idle
-        case bluetoothOff
-        case scanning
-        case connecting(String)
-        case connected(String)
-        case failed(String)
-    }
-
-    static let serviceUUID = CBUUID(string: "4a5b6c7d-0001-4d8e-9f00-a1b2c3d4e5f6")
-    static let telemetryUUID = CBUUID(string: "4a5b6c7d-0002-4d8e-9f00-a1b2c3d4e5f6")
-    static let commandUUID = CBUUID(string: "4a5b6c7d-0003-4d8e-9f00-a1b2c3d4e5f6")
+    // LinkState now lives in BleSpec.swift (Foundation-only) so it is testable
+    // without CoreBluetooth. The UUIDs come from the same place, so the app and
+    // the firmware can be checked against each other.
+    static let serviceUUID = CBUUID(string: BleSpec.serviceUUID)
+    static let telemetryUUID = CBUUID(string: BleSpec.telemetryUUID)
+    static let commandUUID = CBUUID(string: BleSpec.commandUUID)
 
     @Published private(set) var state: LinkState = .idle
     @Published private(set) var telemetry: Telemetry?
@@ -50,10 +44,7 @@ final class BleCentral: NSObject, ObservableObject {
         )
     }
 
-    var isConnected: Bool {
-        if case .connected = state { return true }
-        return false
-    }
+    var isConnected: Bool { state.isConnected }
 
     // MARK: - Public API
 
@@ -78,7 +69,7 @@ final class BleCentral: NSObject, ObservableObject {
     }
 
     func resetTotal() {
-        write("RESET")
+        write(BleSpec.commandReset)
     }
 
     func write(_ command: String) {

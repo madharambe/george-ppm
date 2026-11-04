@@ -95,5 +95,53 @@ check("frame > 20 bytes (does not fit default MTU)", n > 20, "(\(n) bytes)")
 
 print("")
 print("==============================================================")
+print("6. BLE contract (must match firmware/ble_link.py)")
+print("==============================================================")
+check("service UUID well formed", BleSpec.isWellFormed(BleSpec.serviceUUID), BleSpec.serviceUUID)
+check("telemetry UUID well formed", BleSpec.isWellFormed(BleSpec.telemetryUUID))
+check("command UUID well formed", BleSpec.isWellFormed(BleSpec.commandUUID))
+check("UUIDs are 36 chars", BleSpec.serviceUUID.count == 36 && BleSpec.telemetryUUID.count == 36)
+check("device name is GeorgePPM", BleSpec.deviceName == "GeorgePPM")
+check("commands are RESET and ZERO", BleSpec.commandReset == "RESET" && BleSpec.commandZero == "ZERO")
+check("target MTU exceeds frame size", BleSpec.targetMTU > 67, String(BleSpec.targetMTU))
+check("malformed UUID rejected", !BleSpec.isWellFormed("4a5b6c7d-0001-4d8e-9f00"))
+check("non-hex UUID rejected", !BleSpec.isWellFormed("zzzzzzzz-0001-4d8e-9f00-a1b2c3d4e5f6"))
+
+print("")
+print("==============================================================")
+print("7. synthetic telemetry generator")
+print("==============================================================")
+var gen = SyntheticTelemetry()
+var prevTotal = 0.0
+var monotonic = true
+var rpmInRange = true
+var batteryNils = 0
+for i in 1...40 {
+    let f = gen.next(uptimeMs: Int64(i * 1000))
+    if f.t < prevTotal { monotonic = false }
+    prevTotal = f.t
+    if f.r < 1300 || f.r > 1600 { rpmInRange = false }
+    if f.v == nil { batteryNils += 1 }
+}
+check("total only ever increases", monotonic)
+check("rpm stays believable (1300-1600)", rpmInRange)
+check("battery drops to nil every 20th frame", batteryNils == 2, "(\(batteryNils))")
+check("40 frames advanced the tick", gen.tick == 40, String(gen.tick))
+gen.resetTotal()
+check("resetTotal zeroes the total", gen.total == 0.0)
+
+print("")
+print("==============================================================")
+print("8. LinkState")
+print("==============================================================")
+check("connected reports connected", LinkState.connected("GeorgePPM").isConnected)
+check("idle reports not connected", !LinkState.idle.isConnected)
+check("failed reports not connected", !LinkState.failed("x").isConnected)
+check("label carries the device name", LinkState.connected("GeorgePPM").label.contains("GeorgePPM"), LinkState.connected("GeorgePPM").label)
+check("equal states compare equal", LinkState.scanning == LinkState.scanning)
+check("different states differ", LinkState.idle != LinkState.bluetoothOff)
+
+print("")
+print("==============================================================")
 print("RESULT: \(passed) passed, \(failed) failed")
 print("==============================================================")

@@ -13,13 +13,15 @@ set BUILD=D:\Android\swiftbuild
 if not exist "%BUILD%" mkdir "%BUILD%"
 copy /Y "George PPM\ios\GeorgePPM\Telemetry.swift" "%BUILD%\" >nul
 copy /Y "George PPM\ios\GeorgePPM\TelemetryFormatter.swift" "%BUILD%\" >nul
+copy /Y "George PPM\ios\GeorgePPM\BleSpec.swift" "%BUILD%\" >nul
+copy /Y "George PPM\ios\GeorgePPM\SyntheticTelemetry.swift" "%BUILD%\" >nul
 copy /Y "George PPM\tests\swift\main.swift" "%BUILD%\" >nul
 
 cd /d "%BUILD%"
 echo SDK: %SDK%
 echo.
 echo === compiling (with -sdk) ===
-swiftc -sdk "%SDK%" Telemetry.swift TelemetryFormatter.swift main.swift -o harness.exe
+swiftc -sdk "%SDK%" Telemetry.swift TelemetryFormatter.swift BleSpec.swift SyntheticTelemetry.swift main.swift -o harness.exe
 if errorlevel 1 (
   echo COMPILE FAILED
   exit /b 1

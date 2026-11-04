@@ -12,26 +12,40 @@ executed here, not merely simulated.
 
 | Check | Result |
 |---|---|
-| **Swift compile + run** (`tools/swift_harness.cmd`) | **32/32 pass** — real swiftc, real execution |
+| **Swift compile + run** (`tools/swift_harness.cmd`) | **52/52 pass** — real swiftc, real execution |
 | iOS logic simulation (`tests/test_ios_logic_sim.py`) | **34/34 pass** |
-| Project preflight (`tools/ios_preflight.py`) | **49/49 pass** |
+| Project preflight (`tools/ios_preflight.py`) | **61/61 pass** |
 | CoreBluetooth delegate selectors vs Apple docs | 10/10 exact match |
+| BLE contract firmware ↔ iOS ↔ Android | 3 UUIDs + device name all match |
 | Builds as an iOS app | **still never** — needs Xcode/macOS |
 | Runs in the iOS Simulator | **never** — no simulator on Windows |
 
 ### Exactly what compiles here, and what cannot
 
 ```
-Telemetry.swift          COMPILES + RUNS   (Foundation only)
-TelemetryFormatter.swift COMPILES + RUNS   (Foundation only)
-BleCentral.swift         needs CoreBluetooth   -> error: no such module 'CoreBluetooth'
-ContentView.swift        needs SwiftUI         -> error: no such module 'SwiftUI'
-GeorgePPMApp.swift       needs SwiftUI         -> error: no such module 'SwiftUI'
-Simulator.swift          needs Combine         -> ObservableObject / @Published unknown
+Telemetry.swift           COMPILES + RUNS   Foundation only
+TelemetryFormatter.swift  COMPILES + RUNS   Foundation only
+BleSpec.swift             COMPILES + RUNS   Foundation only  (BLE contract + LinkState)
+SyntheticTelemetry.swift  COMPILES + RUNS   Foundation only  (demo data generator)
+BleCentral.swift          needs CoreBluetooth   -> error: no such module 'CoreBluetooth'
+Simulator.swift           needs Combine         -> ObservableObject / @Published unknown
+ContentView.swift         needs SwiftUI         -> error: no such module 'SwiftUI'
+GeorgePPMApp.swift        needs SwiftUI         -> error: no such module 'SwiftUI'
 ```
 
-So the JSON model and every display formatter are proven by execution; the
-SwiftUI views and the CoreBluetooth central are not, and cannot be, on Windows.
+**4 of 8 files compile and execute here.** The four that cannot are exactly the
+Apple-framework layer: the CoreBluetooth adapter and the three SwiftUI files.
+
+The refactor that made this possible was deliberate: the BLE contract (UUIDs,
+device name, commands, `LinkState`) and the synthetic-data generator were pulled
+out of the Apple-only files into Foundation-only ones, so the parts most likely to
+silently drift are now compiled and tested on every run.
+
+Check the boundary yourself:
+
+```powershell
+cmd /c "George PPM\tools\swift_boundary.cmd"
+```
 
 ### Running the Swift harness
 
