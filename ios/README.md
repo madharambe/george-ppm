@@ -18,6 +18,7 @@ executed here, not merely simulated.
 | CoreBluetooth delegate selectors vs Apple docs | 10/10 exact match |
 | BLE contract firmware ↔ iOS ↔ Android | 3 UUIDs + device name all match |
 | CI lint (`tools/ci_lint.py`) | **17/17 pass** — bash syntax, picker on 4 runner images, runner label not retired, action majors current |
+| Spec vs XcodeGen docs (`tools/xcodegen_spec_check.py`) | **20/20 pass** — every key documented, target types valid, scheme refs resolve |
 | Builds as an iOS app | **still never** — needs Xcode/macOS |
 | Runs in the iOS Simulator | **never** — no simulator on Windows |
 
@@ -117,6 +118,18 @@ and `vcvars64.bat` for linking — both handled inside the .cmd.
 
 Push the repo to GitHub, open the **Actions** tab, run *iOS build and test*, then
 download the `GeorgePPM-unsigned-ipa` artifact.
+
+### Why the .xcodeproj is not committed
+
+Generating it needs XcodeGen. I tried to build XcodeGen from source here — Swift
+6.4.2 and SwiftPM both work on this machine, and the source compiled its own
+dependencies fine — but its dependency checkouts contain **symlinks**, and
+Windows refuses to create those without Developer Mode or elevation. SwiftPM uses
+libgit2, which ignores the usual `core.symlinks=false` workaround.
+
+So the spec is validated against XcodeGen's own `ProjectSpec.md` instead
+(`tools/xcodegen_spec_check.py`, 20/20). CI runs `xcodegen generate` on macOS
+where symlinks are free.
 
 ### B. Locally on a Mac
 
