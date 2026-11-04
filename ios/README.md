@@ -35,10 +35,26 @@ ContentView.swift         needs SwiftUI         -> error: no such module 'SwiftU
 GeorgePPMApp.swift        needs SwiftUI         -> error: no such module 'SwiftUI'
 ```
 
-**5 of 9 files compile and execute here.** The four that cannot are exactly the
-Apple-framework layer: the CoreBluetooth adapter, the Combine wrapper, and the two
-SwiftUI files. `ContentView` is now almost pure layout — every string it shows,
-and every "sensor absent" decision, comes from `Dashboard`, which *is* tested.
+**7 of 9 files are verified here.** Five compile and execute; two more type-check
+against hand-written shims of the CoreBluetooth and Combine APIs
+(`tools/swift_shim_check.cmd`). Only the two SwiftUI files are unverified.
+
+| File | Verification |
+|---|---|
+| Telemetry / TelemetryFormatter / BleSpec / SyntheticTelemetry / Dashboard | **compiled + executed** (91 assertions) |
+| BleCentral.swift (254 lines) | **type-checked** against the CoreBluetooth + Combine shims |
+| Simulator.swift | **type-checked** against the Combine shim |
+| ContentView.swift (275 lines) | not verified — needs SwiftUI |
+| GeorgePPMApp.swift (10 lines) | not verified — needs SwiftUI |
+
+**The shim check found a real bug.** `BleCentral.swift` used `ObservableObject`
+and `@Published` but only imported `Foundation` and `CoreBluetooth` — CoreBluetooth
+does not re-export Combine, so the file would have failed to compile on iOS too.
+Fixed by adding `import Combine`. That would otherwise have surfaced only after
+a push and a macOS run.
+
+`ContentView` is now almost pure layout — every string it shows, and every
+"sensor absent" decision, comes from `Dashboard`, which *is* tested.
 
 The refactor was deliberate: the BLE contract (UUIDs, device name, commands,
 `LinkState`), the synthetic-data generator and the presentation logic were pulled
@@ -48,8 +64,12 @@ silently drift are compiled and tested on every run.
 Check the boundary yourself:
 
 ```powershell
-cmd /c "George PPM\tools\swift_boundary.cmd"
+cmd /c "George PPM\tools\swift_boundary.cmd"      # what compiles natively
+cmd /c "George PPM\tools\swift_shim_check.cmd"    # what type-checks against shims
 ```
+
+The shims live in `tests/swift/shims/` and are **never** part of the app target —
+`project.yml` only compiles `GeorgePPM/` and `GeorgePPMTests/`.
 
 ### Running the Swift harness
 

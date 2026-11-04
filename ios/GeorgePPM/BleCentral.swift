@@ -1,5 +1,6 @@
 import Foundation
 import CoreBluetooth
+import Combine      // ObservableObject / @Published - NOT re-exported by CoreBluetooth
 
 /// CoreBluetooth central for the George PPM ESP32.
 ///
