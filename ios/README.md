@@ -3,36 +3,59 @@
 SwiftUI + CoreBluetooth client for the same ESP32 telemetry protocol as the
 Android app.
 
-## Status: source-complete, NEVER COMPILED
+## Status: source-complete, logic verified, NEVER COMPILED
 
-This is a Windows machine, so there is **no macOS and no Xcode** here. The Swift
-below has never been run through a compiler, and has never been on a device or
-simulator. Treat the first Xcode build as the real test.
+This is a Windows machine: **no macOS, no Xcode, no iOS Simulator**. The Swift
+has never been through a compiler. What *has* been done:
 
-There is deliberately **no `.xcodeproj`**. A hand-written `project.pbxproj` of
-that size, generated blind and unverifiable, would more likely fail to open than
-help. Creating the project in Xcode takes about a minute (below).
+| Check | Result |
+|---|---|
+| iOS logic simulation (`tests/test_ios_logic_sim.py`) | **34/34 pass** |
+| Swift source brace/paren balance | all 6 files balanced |
+| `project.yml` + workflow YAML parse | valid, targets/schemes wired correctly |
+| Swift compilation | **never attempted** — impossible here |
+| Runs in an iOS Simulator | **never** — no simulator exists on Windows |
 
-## Setup in Xcode
+The logic simulation mirrors `TelemetryFormatter.swift` and the decode rules,
+then runs the *same fixtures* and asserts the *same strings* as the XCTest suite.
+So behaviour is proven; only compilation is not.
 
-1. **Xcode → File → New → Project → iOS → App**
-   - Interface: **SwiftUI**, Language: **Swift**
-   - Name: `GeorgePPM`
-2. Delete the generated `ContentView.swift` and `<name>App.swift`.
-3. Drag these four files into the project (Copy items if needed):
-   - `GeorgePPM/ContentView.swift`
-   - `GeorgePPM/GeorgePPMApp.swift`
-   - `GeorgePPM/BleCentral.swift`
-   - `GeorgePPM/Telemetry.swift`
-   - `GeorgePPM/Simulator.swift`
-4. Set the minimum deployment target to **iOS 16.0** (uses `Toggle`, `@StateObject`
-   and `onChange(of:)`; bump if Xcode complains about the `onChange` signature).
-5. Add the Bluetooth usage strings. Either point the target at `ios/Info.plist`,
-   or paste these keys into the target's Info settings:
-   - `NSBluetoothAlwaysUsageDescription` — required on iOS 13+, **the app will
-     crash on first scan without it**
-   - `NSBluetoothPeripheralUsageDescription` — legacy, harmless to include
-6. Run on a **physical iPhone**. The iOS Simulator has no Bluetooth radio.
+## Building it — two paths
+
+### A. CI (works from Windows, recommended)
+
+`.github/workflows/ios.yml` builds and tests on a GitHub macOS runner:
+
+- installs XcodeGen, generates the Xcode project from `project.yml`
+- runs the XCTest suite on the **iPhone 15 simulator**
+- archives an **unsigned `.ipa`** and uploads it as a build artifact
+
+Push the repo to GitHub, open the **Actions** tab, run *iOS build and test*, then
+download the `GeorgePPM-unsigned-ipa` artifact.
+
+### B. Locally on a Mac
+
+```bash
+brew install xcodegen
+cd ios
+xcodegen generate          # creates GeorgePPM.xcodeproj from project.yml
+open GeorgePPM.xcodeproj   # then Run on a physical iPhone
+```
+
+The iOS Simulator has **no Bluetooth radio**, so it can verify the UI and unit
+tests but never the BLE link. Hardware testing needs a real iPhone.
+
+## Installing the .ipa on an iPhone
+
+iOS has no equivalent of "install unknown APK". An unsigned `.ipa` will not
+install on a stock iPhone — it must be signed with an Apple ID:
+
+| Path | Cost | Expiry |
+|---|---|---|
+| Sideloadly / AltStore on Windows, free Apple ID | free | 7 days, re-sign weekly |
+| Xcode + USB, free Apple ID | needs a Mac | 7 days |
+| TestFlight | $99/yr Apple Developer | 90 days per build |
+| Ad Hoc | $99/yr + registered UDIDs | 1 year |
 
 ## Behaviour
 
@@ -42,26 +65,28 @@ Same protocol as Android (`docs/BLE_PROTOCOL.md`):
 - Subscribes to the telemetry characteristic `…0002…`
 - Parses the JSON frame once per second
 - `Reset Total` writes `RESET` to `…0003…`
-- **Simulation mode** generates synthetic frames so the UI can be exercised with
-  no board at all
+- **Simulation mode** generates synthetic frames, so the UI can be exercised
+  with no board at all
 
 ## iOS-specific notes
 
 | Topic | iOS behaviour |
 |---|---|
-| MTU | **Cannot be requested.** CoreBluetooth negotiates automatically (~185 bytes), well above our 67-byte frame, so nothing needed |
-| CCCD / descriptor | CoreBluetooth writes the notify descriptor itself when `setNotifyValue(true, for:)` is called |
-| Scan filtering | Filters on the **advertisement** packet — this is why the firmware puts the 128-bit UUID in the advertisement and the name in the scan response |
-| RSSI | Not pushed; polled with `readRSSI()` on a 5 s timer |
-| Background | Not configured. Add the `bluetooth-central` background mode if you need updates while backgrounded |
+| MTU | **Cannot be requested.** CoreBluetooth negotiates (~185 bytes), far above our 67-byte frame |
+| CCCD / descriptor | CoreBluetooth writes the notify descriptor itself on `setNotifyValue(true, for:)` |
+| Scan filtering | Filters on the **advertisement** packet — the firmware puts the 128-bit UUID there and the name in the scan response |
+| RSSI | Not pushed; polled with `readRSSI()` every 5 s |
+| Background | Not configured; add the `bluetooth-central` background mode if needed |
 
 ## Files
 
 | File | Purpose |
 |---|---|
+| `project.yml` | XcodeGen spec — generates the .xcodeproj, so no hand-written pbxproj |
 | `GeorgePPM/GeorgePPMApp.swift` | `@main` entry point |
 | `GeorgePPM/ContentView.swift` | SwiftUI UI: metric cards, connection detail, event log, simulation toggle |
 | `GeorgePPM/BleCentral.swift` | CoreBluetooth central: scan → connect → discover → subscribe → parse |
 | `GeorgePPM/Telemetry.swift` | `Decodable` frame model |
+| `GeorgePPM/TelemetryFormatter.swift` | display formatting, kept SwiftUI-free so it is unit-testable |
 | `GeorgePPM/Simulator.swift` | synthetic telemetry for hardware-free testing |
-| `Info.plist` | Bluetooth usage descriptions and launch screen |
+| `GeorgePPMTests/TelemetryTests.swift` | XCTest suite, runs on the simulator in CI |

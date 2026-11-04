@@ -1,0 +1,52 @@
+name: GeorgePPM
+options:
+  bundleIdPrefix: com.georgeppm
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  GeorgePPM:
+    type: application
+    platform: iOS
+    sources:
+      - path: GeorgePPM
+    info:
+      path: GeorgePPM/Info.plist
+      properties:
+        CFBundleDisplayName: George PPM
+        NSBluetoothAlwaysUsageDescription: George PPM connects to the ESP32 flow/RPM/current monitor to read live telemetry.
+        NSBluetoothPeripheralUsageDescription: George PPM uses Bluetooth to read telemetry from the ESP32.
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities:
+          - bluetooth-le
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.georgeppm.monitor
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGNING_ALLOWED: NO
+
+  GeorgePPMTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: GeorgePPMTests
+    dependencies:
+      - target: GeorgePPM
+
+schemes:
+  GeorgePPM:
+    build:
+      targets:
+        GeorgePPM: all
+        GeorgePPMTests: [test]
+    test:
+      gatherCoverageData: true
+      targets:
+        - GeorgePPMTests

@@ -1,0 +1,81 @@
+name: iOS build and test
+
+# This is the only way to build/test an iOS app from Windows: GitHub's macOS
+# runners have the real Xcode and the real iOS Simulator.
+#
+# Free tier: 2,000 macOS minutes/month on public repos.
+#
+# Produces:
+#   - unit test results (XCTest, on the simulator)
+#   - an UNSIGNED .ipa artifact, which Sideloadly/AltStore can sign on Windows
+#     with your own Apple ID (free account = 7 day expiry, re-sign weekly)
+
+on:
+  push:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ios
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      - name: List available simulators
+        run: xcrun simctl list devices available | sed -n '1,40p'
+
+      - name: Run unit tests on the iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project GeorgePPM.xcodeproj \
+            -scheme GeorgePPM \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ios/TestResults.xcresult
+          if-no-files-found: warn
+
+      - name: Build unsigned .ipa
+        run: |
+          xcodebuild archive \
+            -project GeorgePPM.xcodeproj \
+            -scheme GeorgePPM \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/GeorgePPM.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+          mkdir -p build/Payload
+          cp -R build/GeorgePPM.xcarchive/Products/Applications/GeorgePPM.app build/Payload/
+          cd build && zip -qry GeorgePPM-unsigned.ipa Payload && ls -lh GeorgePPM-unsigned.ipa
+
+      - name: Upload unsigned .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeorgePPM-unsigned-ipa
+          path: ios/build/GeorgePPM-unsigned.ipa

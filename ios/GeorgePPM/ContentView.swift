@@ -137,7 +137,7 @@ struct ContentView: View {
                     .tracking(0.8)
                     .foregroundColor(Theme.muted)
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(frame.map { String(format: "%.2f", $0.f) } ?? "--")
+                    Text(frame.map { TelemetryFormatter.flow($0.f) } ?? "--")
                         .font(.system(size: 46, weight: .bold, design: .rounded))
                         .foregroundColor(Theme.text)
                     Text("L/min")
@@ -151,14 +151,14 @@ struct ContentView: View {
     private var metricGrid: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                Card { MetricTile(label: "Total", value: frame.map { String(format: "%.2f", $0.t) } ?? "--", unit: "L") }
-                Card { MetricTile(label: "RPM", value: frame.map { String($0.r) } ?? "--", unit: "rev/min") }
+                Card { MetricTile(label: "Total", value: frame.map { TelemetryFormatter.total($0.t) } ?? "--", unit: "L") }
+                Card { MetricTile(label: "RPM", value: frame.map { TelemetryFormatter.rpm($0.r) } ?? "--", unit: "rev/min") }
             }
             HStack(spacing: 12) {
                 Card {
                     MetricTile(
                         label: "Arus",
-                        value: frame?.a.map { String(format: "%.2f", $0) } ?? "--",
+                        value: TelemetryFormatter.amps(frame?.a),
                         unit: "A",
                         muted: frame?.a == nil
                     )
@@ -166,7 +166,7 @@ struct ContentView: View {
                 Card {
                     MetricTile(
                         label: "Baterai",
-                        value: frame?.v.map { String(format: "%.2f", $0) } ?? "--",
+                        value: TelemetryFormatter.battery(frame?.v),
                         unit: "V",
                         muted: frame?.v == nil
                     )
@@ -184,10 +184,10 @@ struct ContentView: View {
                     .foregroundColor(Theme.muted)
                 VStack(alignment: .leading, spacing: 3) {
                     metaRow("link", simulate ? "simulated" : (ble.isConnected ? "BLE connected" : "--"))
-                    metaRow("rssi", simulate ? "-54 dBm" : (ble.rssi == 0 ? "--" : String(ble.rssi) + " dBm"))
+                    metaRow("rssi", simulate ? "-54 dBm" : TelemetryFormatter.rssi(ble.rssi))
                     metaRow("mtu", simulate ? "247 (sim)" : "auto by iOS")
-                    metaRow("uptime", frame.map { String($0.ms / 1000) + " s" } ?? "--")
-                    metaRow("clients", frame.map { String($0.c) } ?? "--")
+                    metaRow("uptime", frame.map { TelemetryFormatter.uptime($0.ms) } ?? "--")
+                    metaRow("clients", frame.map { TelemetryFormatter.clients($0.c) } ?? "--")
                 }
                 .font(.system(size: 13, design: .monospaced))
                 .foregroundColor(Theme.text)
