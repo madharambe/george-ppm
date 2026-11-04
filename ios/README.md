@@ -19,6 +19,7 @@ executed here, not merely simulated.
 | BLE contract firmware ↔ iOS ↔ Android | 3 UUIDs + device name all match |
 | CI lint (`tools/ci_lint.py`) | **17/17 pass** — bash syntax, picker on 4 runner images, runner label not retired, action majors current |
 | Spec vs XcodeGen docs (`tools/xcodegen_spec_check.py`) | **20/20 pass** — every key documented, target types valid, scheme refs resolve |
+| iOS↔Android rendering parity (`tools/app_parity_check.py`) | **21/21 pass** — same decimals, same `--` sentinel, same labels/units |
 | Builds as an iOS app | **still never** — needs Xcode/macOS |
 | Runs in the iOS Simulator | **never** — no simulator on Windows |
 
