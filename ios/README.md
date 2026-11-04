@@ -173,6 +173,51 @@ open GeorgePPM.xcodeproj   # then Run on a physical iPhone
 The iOS Simulator has **no Bluetooth radio**, so it can verify the UI and unit
 tests but never the BLE link. Hardware testing needs a real iPhone.
 
+## Signing — why it needs YOU
+
+The `.ipa` is **unsigned**. Signing cannot be done by an agent, on any machine,
+without the account holder present:
+
+- a signing certificate is issued by Apple **to your Apple ID** (with 2FA);
+- a provisioning profile is bound to **your** certificate and to the specific
+  device UDIDs it may run on;
+- Apple's developer services are the only source for either.
+
+There is no "unknown sources" switch on iOS, so an unsigned `.ipa` will not
+install on a stock iPhone. I have no Apple credentials, and should not.
+
+### Option 1 — CI signs it for you (add 4 secrets, one time)
+
+The workflow has an optional signing step that runs **only** when these
+repository secrets exist (Settings → Secrets and variables → Actions):
+
+| Secret | What it is |
+|---|---|
+| `BUILD_CERTIFICATE_BASE64` | your `.p12` developer certificate, base64-encoded |
+| `P12_PASSWORD` | the password you set when exporting the `.p12` |
+| `PROVISIONING_PROFILE_BASE64` | your `.mobileprovision`, base64-encoded |
+| `KEYCHAIN_PASSWORD` | any throwaway string, used for the temporary keychain |
+
+With those set, the next run also produces `GeorgePPM-signed.ipa`. Without them
+the workflow still succeeds and uploads the unsigned build — that is what it does
+today.
+
+Base64 helper (Windows):
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("cert.p12")) | Set-Clipboard
+```
+
+### Option 2 — sign locally on Windows (no Mac needed)
+
+**Sideloadly** signs with a free Apple ID over USB: install it plus iTunes,
+connect the iPhone, drop the `.ipa` in, enter your Apple ID (2FA prompt), install.
+Free accounts expire after **7 days** and need re-signing.
+
+### Option 3 — a Mac
+
+`open GeorgePPM.xcodeproj`, select your team under Signing & Capabilities, Run.
+
 ## Installing the .ipa on an iPhone
 
 iOS has no equivalent of "install unknown APK". An unsigned `.ipa` will not

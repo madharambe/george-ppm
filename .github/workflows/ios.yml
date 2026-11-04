@@ -95,6 +95,60 @@ jobs:
           cd build && zip -qry GeorgePPM-unsigned.ipa Payload
           ls -lh GeorgePPM-unsigned.ipa
 
+      # ---------------------------------------------------------------- signing
+      # Optional. Runs only when the four signing secrets are configured.
+      # Without them the workflow still succeeds and uploads the unsigned .ipa.
+      - name: Sign the .ipa (optional)
+        env:
+          CERT_B64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          PROFILE_B64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$CERT_B64" ]; then
+            echo "No signing secrets configured - keeping the unsigned .ipa."
+            echo "See ios/README.md to add them."
+            exit 0
+          fi
+
+          echo "Importing certificate into a temporary keychain..."
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          echo "$PROFILE_B64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '\"')
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$RUNNER_TEMP/profile.mobileprovision" \
+             ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          echo "Re-signing the app..."
+          APP="build/GeorgePPM.xcarchive/Products/Applications/GeorgePPM.app"
+          /usr/bin/codesign --force --sign "Apple Development" \
+            --entitlements /dev/null --timestamp=none "$APP"
+          /usr/bin/codesign --verify --verbose=2 "$APP"
+
+          rm -rf build/Payload build/GeorgePPM-signed.ipa
+          mkdir -p build/Payload
+          cp -R "$APP" build/Payload/
+          cd build && zip -qry GeorgePPM-signed.ipa Payload
+          ls -lh GeorgePPM-signed.ipa
+
+      - name: Upload signed .ipa
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: GeorgePPM-signed-ipa
+          path: ios/build/GeorgePPM-signed.ipa
+          if-no-files-found: ignore
+
       - name: Upload unsigned .ipa
         uses: actions/upload-artifact@v7
         with:
