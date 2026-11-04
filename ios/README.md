@@ -3,7 +3,36 @@
 SwiftUI + CoreBluetooth client for the same ESP32 telemetry protocol as the
 Android app.
 
-## Status: partially COMPILED and RUN with a real Swift compiler
+## Status: BUILT, TESTED AND PACKAGED (2026-11-04)
+
+The app was compiled by Xcode on a GitHub macOS runner and **all 7 XCTest cases
+passed on the iOS Simulator**. A valid unsigned `.ipa` was produced.
+
+```
+run 41797491054 · macos-15 · 1m52s · conclusion: success
+  ✓ xcodegen 2.46.0 generated GeorgePPM.xcodeproj
+  ✓ xcodebuild test on the iPhone simulator — 7/7 passed
+  ✓ xcodebuild archive -> GeorgePPM-unsigned.ipa
+```
+
+Verified inside the packaged `.ipa`:
+
+| Key | Value |
+|---|---|
+| CFBundleIdentifier | `com.georgeppm.monitor` |
+| CFBundleDisplayName | George PPM |
+| MinimumOSVersion | 16.0 |
+| UIDeviceFamily | `[1]` (iPhone) |
+| UIRequiredDeviceCapabilities | `bluetooth-le`, `arm64` |
+| NSBluetoothAlwaysUsageDescription | present |
+| executable | 188,592 bytes, **Mach-O 64-bit arm64** |
+
+Artifact: `ios/build/GeorgePPM-unsigned.ipa` (61,101 bytes, gitignored).
+
+The sections below record how the source was verified *before* a Mac was
+involved — that work is why the first real build passed without a single fix.
+
+## Source verification before the build
 
 A **Swift 6.4.2 toolchain was installed on this Windows machine** (winget
 `Swift.Toolchain`, per-user, alongside the already-present MSVC 2022 + Windows

@@ -75,9 +75,9 @@ RPM      1450           Total   45.67 L       BLE        1
 | iOS logic (Swift 6.4.2 on Windows) | **91/91 pass** — 5 of 9 files compiled + executed |
 | iOS source verification | **9 of 9 files** — the other 4 type-check against CoreBluetooth/Combine/SwiftUI shims (mutation-tested) |
 | iOS project preflight | **61/61 pass** — delegate selectors vs Apple docs, and BLE contract firmware ↔ iOS ↔ Android |
-| iOS app as a whole | **Not built** — SwiftUI/CoreBluetooth need macOS; CI workflow is ready |
+| iOS app as a whole | **BUILT + TESTED** — CI run 41797491054, macos-15, 7/7 XCTest passed |
 | APK | **Exists** — `android/app/build/outputs/apk/debug/app-debug.apk` (5.60 MB, signed) |
-| .ipa | Does not exist yet — run `tools/publish_and_build.ps1` |
+| .ipa | **Exists** — `ios/build/GeorgePPM-unsigned.ipa` (61 KB, arm64, unsigned) |
 
 ## Board quirks worth remembering
 
