@@ -1,13 +1,12 @@
 name: iOS build and test
 
-# This is the only way to build/test an iOS app from Windows: GitHub's macOS
-# runners have the real Xcode and the real iOS Simulator.
-#
+# The only way to build/test an iOS app from Windows: GitHub's macOS runners
+# have the real Xcode and the real iOS Simulator.
 # Free tier: 2,000 macOS minutes/month on public repos.
 #
 # Produces:
-#   - unit test results (XCTest, on the simulator)
-#   - an UNSIGNED .ipa artifact, which Sideloadly/AltStore can sign on Windows
+#   - XCTest results (unit tests run on the simulator)
+#   - an UNSIGNED .ipa artifact that Sideloadly/AltStore can sign on Windows
 #     with your own Apple ID (free account = 7 day expiry, re-sign weekly)
 
 on:
@@ -15,6 +14,9 @@ on:
     paths:
       - "ios/**"
       - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios/**"
   workflow_dispatch:
 
 jobs:
@@ -28,17 +30,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+          xcrun simctl list runtimes | sed -n '1,10p'
 
       - name: Install XcodeGen
         run: brew install xcodegen
 
       - name: Generate the Xcode project
-        run: xcodegen generate
+        run: xcodegen generate && xcodebuild -list -project GeorgePPM.xcodeproj
 
-      - name: List available simulators
-        run: xcrun simctl list devices available | sed -n '1,40p'
+      # Runner images rotate their simulator names, so never hardcode one.
+      - name: Pick an available iPhone simulator
+        run: |
+          NAME=$(xcrun simctl list devices available \
+                 | grep -oE 'iPhone 1[0-9]( Pro| Plus| mini)?' \
+                 | sort -u | tail -1)
+          if [ -z "$NAME" ]; then
+            echo "no iPhone simulator found; available devices:"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Using simulator: $NAME"
+          echo "SIM_NAME=$NAME" >> "$GITHUB_ENV"
 
       - name: Run unit tests on the iOS Simulator
         run: |
@@ -46,7 +62,7 @@ jobs:
           xcodebuild test \
             -project GeorgePPM.xcodeproj \
             -scheme GeorgePPM \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination "platform=iOS Simulator,name=$SIM_NAME" \
             -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
@@ -72,7 +88,8 @@ jobs:
             CODE_SIGN_IDENTITY=""
           mkdir -p build/Payload
           cp -R build/GeorgePPM.xcarchive/Products/Applications/GeorgePPM.app build/Payload/
-          cd build && zip -qry GeorgePPM-unsigned.ipa Payload && ls -lh GeorgePPM-unsigned.ipa
+          cd build && zip -qry GeorgePPM-unsigned.ipa Payload
+          ls -lh GeorgePPM-unsigned.ipa
 
       - name: Upload unsigned .ipa
         uses: actions/upload-artifact@v4

@@ -13,6 +13,11 @@ import os
 import sys
 import time
 
+# PySocks is vendored next to this file so requests can speak socks5h://.
+# Measured 2026-11-04: dl.google.com gives ~1.0 Mbps direct from the campus
+# network but ~12 Mbps through the campus SOCKS tunnel - a 10x difference.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "_pylibs"))
+
 import requests
 
 # Accept-Encoding: identity is REQUIRED. dl.google.com serves the SDK zip with
@@ -58,7 +63,10 @@ def remote_size(url):
     return 0
 
 
-def download(url, dest, chunk_mb=8, retries=6, expect_size=0):
+def download(url, dest, chunk_mb=8, retries=6, expect_size=0, socks=""):
+    proxies = {"http": "socks5h://" + socks, "https": "socks5h://" + socks} if socks else None
+    if socks:
+        print("proxy  : socks5h://%s" % socks)
     os.makedirs(os.path.dirname(os.path.abspath(dest)) or ".", exist_ok=True)
     total = expect_size or remote_size(url)
     if not total:
@@ -90,7 +98,7 @@ def download(url, dest, chunk_mb=8, retries=6, expect_size=0):
         headers = dict(UA)
         headers["Range"] = "bytes=%d-%s" % (have, end if end is not None else "")
         try:
-            r = requests.get(url, headers=headers, timeout=(15, 60), stream=True)
+            r = requests.get(url, headers=headers, timeout=(15, 60), stream=True, proxies=proxies)
             if r.status_code not in (200, 206):
                 raise RuntimeError("HTTP %s" % r.status_code)
             mode = "ab" if (have and r.status_code == 206) else "wb"
@@ -137,8 +145,11 @@ def main():
     ap.add_argument("--retries", type=int, default=6)
     ap.add_argument("--expect-size", type=int, default=0,
                     help="known byte count; used when the server hides Content-Length")
+    ap.add_argument("--socks", default="",
+                    help="host:port of a SOCKS5 proxy, e.g. 127.0.0.1:1080 "
+                         "(10x faster to dl.google.com on this campus network)")
     a = ap.parse_args()
-    ok = download(a.url, a.dest, a.chunk_mb, a.retries, a.expect_size)
+    ok = download(a.url, a.dest, a.chunk_mb, a.retries, a.expect_size, a.socks)
     sys.exit(0 if ok else 1)
 
 

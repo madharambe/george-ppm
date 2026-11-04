@@ -11,8 +11,10 @@ has never been through a compiler. What *has* been done:
 | Check | Result |
 |---|---|
 | iOS logic simulation (`tests/test_ios_logic_sim.py`) | **34/34 pass** |
-| Swift source brace/paren balance | all 6 files balanced |
+| Project preflight (`tools/ios_preflight.py`) | **39/39 pass** |
+| Swift source brace/paren balance | all 7 files balanced |
 | `project.yml` + workflow YAML parse | valid, targets/schemes wired correctly |
+| Test target / scheme / Info.plist keys | verified wired |
 | Swift compilation | **never attempted** — impossible here |
 | Runs in an iOS Simulator | **never** — no simulator exists on Windows |
 
