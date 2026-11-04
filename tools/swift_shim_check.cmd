@@ -20,12 +20,19 @@ swiftc -sdk "%SDK%" -emit-module -module-name Combine -emit-module-path mods\Com
 if errorlevel 1 ( echo COMBINE SHIM FAILED & exit /b 1 )
 swiftc -sdk "%SDK%" -emit-module -module-name CoreBluetooth -emit-module-path mods\CoreBluetooth.swiftmodule CoreBluetooth.swift -I mods
 if errorlevel 1 ( echo COREBLUETOOTH SHIM FAILED & exit /b 1 )
+swiftc -sdk "%SDK%" -emit-module -module-name SwiftUI -emit-module-path mods\SwiftUI.swiftmodule SwiftUI.swift -I mods
+if errorlevel 1 ( echo SWIFTUI SHIM FAILED & exit /b 1 )
 echo shim modules OK
 echo.
 
-echo === type-checking against the shims ===
+echo === type-check BleCentral ===
 swiftc -sdk "%SDK%" -typecheck -I mods Telemetry.swift TelemetryFormatter.swift BleSpec.swift Dashboard.swift SyntheticTelemetry.swift BleCentral.swift
-if errorlevel 1 ( echo TYPECHECK FAILED BleCentral ) else ( echo TYPECHECK OK - BleCentral.swift is structurally sound )
+if errorlevel 1 ( echo FAILED BleCentral ) else ( echo OK BleCentral )
 
+echo === type-check Simulator ===
 swiftc -sdk "%SDK%" -typecheck -I mods Telemetry.swift TelemetryFormatter.swift BleSpec.swift SyntheticTelemetry.swift Simulator.swift
-if errorlevel 1 ( echo TYPECHECK FAILED Simulator ) else ( echo TYPECHECK OK - Simulator.swift is structurally sound )
+if errorlevel 1 ( echo FAILED Simulator ) else ( echo OK Simulator )
+
+echo === type-check ContentView + App ===
+swiftc -sdk "%SDK%" -typecheck -I mods Telemetry.swift TelemetryFormatter.swift BleSpec.swift Dashboard.swift SyntheticTelemetry.swift Simulator.swift BleCentral.swift ContentView.swift GeorgePPMApp.swift
+if errorlevel 1 ( echo FAILED ContentView ) else ( echo OK ContentView+App )

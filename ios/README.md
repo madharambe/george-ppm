@@ -35,17 +35,38 @@ ContentView.swift         needs SwiftUI         -> error: no such module 'SwiftU
 GeorgePPMApp.swift        needs SwiftUI         -> error: no such module 'SwiftUI'
 ```
 
-**7 of 9 files are verified here.** Five compile and execute; two more type-check
-against hand-written shims of the CoreBluetooth and Combine APIs
-(`tools/swift_shim_check.cmd`). Only the two SwiftUI files are unverified.
+**All 9 files are verified here.** Five compile and execute; the other four
+type-check against hand-written shims of CoreBluetooth, Combine and SwiftUI
+(`tools/swift_shim_check.cmd`).
 
-| File | Verification |
+| File | Lines | Verification |
+|---|---|---|
+| Telemetry / TelemetryFormatter / BleSpec / SyntheticTelemetry / Dashboard | 252 | **compiled + executed** (91 assertions) |
+| BleCentral.swift | 255 | **type-checked** (CoreBluetooth + Combine shims) |
+| Simulator.swift | 43 | **type-checked** (Combine shim) |
+| ContentView.swift | 275 | **type-checked** (SwiftUI shim) |
+| GeorgePPMApp.swift | 10 | **type-checked** (SwiftUI shim) |
+
+### The shims are not trusted blindly
+
+A shim that accepts everything is worthless, so `tools/swift_shim_mutation_test.cmd`
+deliberately breaks the source and asserts the shim **rejects** it:
+
+| Mutation | Result |
 |---|---|
-| Telemetry / TelemetryFormatter / BleSpec / SyntheticTelemetry / Dashboard | **compiled + executed** (91 assertions) |
-| BleCentral.swift (254 lines) | **type-checked** against the CoreBluetooth + Combine shims |
-| Simulator.swift | **type-checked** against the Combine shim |
-| ContentView.swift (275 lines) | not verified — needs SwiftUI |
-| GeorgePPMApp.swift (10 lines) | not verified — needs SwiftUI |
+| misspelled modifier (`.foregroundColour`) | CAUGHT |
+| wrong argument label (`.padding(hv: 16)`) | CAUGHT |
+| type error (`Text(3.14)` where a String is required) | CAUGHT |
+| removed `import Combine` from BleCentral | CAUGHT |
+| unmodified sources | all 9 pass |
+
+**What a pass proves:** our Swift is well-formed — no typos, wrong labels or type
+errors — and the control flow and member names are consistent.
+
+**What it does NOT prove:** that the shims match Apple's real frameworks, or that
+anything renders correctly. The SwiftUI shim mirrors only the ~17 modifiers and
+~16 view types this app uses. Real-framework compatibility is still only settled
+by the CI build.
 
 **The shim check found a real bug.** `BleCentral.swift` used `ObservableObject`
 and `@Published` but only imported `Foundation` and `CoreBluetooth` — CoreBluetooth
@@ -64,8 +85,9 @@ silently drift are compiled and tested on every run.
 Check the boundary yourself:
 
 ```powershell
-cmd /c "George PPM\tools\swift_boundary.cmd"      # what compiles natively
-cmd /c "George PPM\tools\swift_shim_check.cmd"    # what type-checks against shims
+cmd /c "George PPM\tools\swift_boundary.cmd"           # what compiles natively
+cmd /c "George PPM\tools\swift_shim_check.cmd"         # type-check all 9 files
+cmd /c "George PPM\tools\swift_shim_mutation_test.cmd" # prove the shims have teeth
 ```
 
 The shims live in `tests/swift/shims/` and are **never** part of the app target —
