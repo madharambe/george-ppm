@@ -10,4 +10,11 @@
     <string name="status_idle">Idle</string>
     <string name="section_connection">Connection</string>
     <string name="section_log">Event log</string>
+
+    <!-- metric labels referenced by activity_main.xml -->
+    <string name="debit">Debit</string>
+    <string name="total">Total</string>
+    <string name="rpm">RPM</string>
+    <string name="current">Arus</string>
+    <string name="battery">Baterai</string>
 </resources>
