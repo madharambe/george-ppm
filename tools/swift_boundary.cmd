@@ -11,12 +11,12 @@ cd /d D:\Android\swiftbuild
 copy /Y "%SRC%\*.swift" . >nul 2>&1
 
 echo === Foundation-only group (typechecked together) ===
-swiftc -sdk "%SDK%" -typecheck Telemetry.swift TelemetryFormatter.swift BleSpec.swift SyntheticTelemetry.swift >nul 2>&1
-if errorlevel 1 ( echo   GROUP FAILED ) else ( echo   Telemetry.swift TelemetryFormatter.swift BleSpec.swift SyntheticTelemetry.swift : ALL COMPILE )
+swiftc -sdk "%SDK%" -typecheck Telemetry.swift TelemetryFormatter.swift BleSpec.swift SyntheticTelemetry.swift Dashboard.swift >nul 2>&1
+if errorlevel 1 ( echo   GROUP FAILED ) else ( echo   Telemetry TelemetryFormatter BleSpec SyntheticTelemetry Dashboard : ALL COMPILE )
 
 echo.
 echo === Apple-framework files (expected to fail on Windows) ===
 for %%F in (BleCentral.swift Simulator.swift ContentView.swift GeorgePPMApp.swift) do (
-  swiftc -sdk "%SDK%" -typecheck Telemetry.swift TelemetryFormatter.swift BleSpec.swift SyntheticTelemetry.swift %%F >nul 2>&1
+  swiftc -sdk "%SDK%" -typecheck Telemetry.swift TelemetryFormatter.swift BleSpec.swift SyntheticTelemetry.swift Dashboard.swift %%F >nul 2>&1
   if errorlevel 1 ( echo   %%F : needs Apple frameworks ) else ( echo   %%F : COMPILES )
 )

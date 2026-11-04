@@ -65,24 +65,17 @@ struct ContentView: View {
         simulate ? sim.telemetry : ble.telemetry
     }
 
-    private var statusText: String {
-        if simulate { return "Simulation" }
-        switch ble.state {
-        case .idle: return "Idle"
-        case .bluetoothOff: return "Bluetooth off"
-        case .scanning: return "Scanning..."
-        case .connecting(let name): return "Connecting " + name
-        case .connected(let name): return "Connected - " + name
-        case .failed(let why): return "Failed: " + why
-        }
+    /// All wording and "sensor absent" decisions come from Dashboard, which is
+    /// Foundation-only and therefore unit-tested on Windows too.
+    private var dash: Dashboard {
+        Dashboard.make(frame: frame, simulate: simulate, state: ble.state, rssi: ble.rssi)
     }
 
     private var statusColor: Color {
-        if simulate { return Theme.accent }
-        switch ble.state {
-        case .connected: return Theme.good
-        case .scanning, .connecting: return Theme.warn
-        case .failed, .bluetoothOff: return Theme.bad
+        switch dash.statusKind {
+        case .ok: return simulate ? Theme.accent : Theme.good
+        case .warn: return Theme.warn
+        case .bad: return Theme.bad
         case .idle: return Theme.surfaceHigh
         }
     }
@@ -117,7 +110,7 @@ struct ContentView: View {
             Text("Water flow - RPM - current monitor")
                 .font(.system(size: 13))
                 .foregroundColor(Theme.muted)
-            Text(statusText)
+            Text(dash.statusLabel)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(Theme.text)
                 .padding(.horizontal, 12)
@@ -137,7 +130,7 @@ struct ContentView: View {
                     .tracking(0.8)
                     .foregroundColor(Theme.muted)
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(frame.map { TelemetryFormatter.flow($0.f) } ?? "--")
+                    Text(dash.flow)
                         .font(.system(size: 46, weight: .bold, design: .rounded))
                         .foregroundColor(Theme.text)
                     Text("L/min")
@@ -151,24 +144,24 @@ struct ContentView: View {
     private var metricGrid: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                Card { MetricTile(label: "Total", value: frame.map { TelemetryFormatter.total($0.t) } ?? "--", unit: "L") }
-                Card { MetricTile(label: "RPM", value: frame.map { TelemetryFormatter.rpm($0.r) } ?? "--", unit: "rev/min") }
+                Card { MetricTile(label: "Total", value: dash.total, unit: "L") }
+                Card { MetricTile(label: "RPM", value: dash.rpm, unit: "rev/min") }
             }
             HStack(spacing: 12) {
                 Card {
                     MetricTile(
                         label: "Arus",
-                        value: TelemetryFormatter.amps(frame?.a),
+                        value: dash.amps,
                         unit: "A",
-                        muted: frame?.a == nil
+                        muted: dash.ampsMissing
                     )
                 }
                 Card {
                     MetricTile(
                         label: "Baterai",
-                        value: TelemetryFormatter.battery(frame?.v),
+                        value: dash.battery,
                         unit: "V",
-                        muted: frame?.v == nil
+                        muted: dash.batteryMissing
                     )
                 }
             }
@@ -183,11 +176,11 @@ struct ContentView: View {
                     .tracking(0.8)
                     .foregroundColor(Theme.muted)
                 VStack(alignment: .leading, spacing: 3) {
-                    metaRow("link", simulate ? "simulated" : (ble.isConnected ? "BLE connected" : "--"))
-                    metaRow("rssi", simulate ? "-54 dBm" : TelemetryFormatter.rssi(ble.rssi))
-                    metaRow("mtu", simulate ? "247 (sim)" : "auto by iOS")
-                    metaRow("uptime", frame.map { TelemetryFormatter.uptime($0.ms) } ?? "--")
-                    metaRow("clients", frame.map { TelemetryFormatter.clients($0.c) } ?? "--")
+                    metaRow("link", dash.linkRow)
+                    metaRow("rssi", dash.rssiRow)
+                    metaRow("mtu", dash.mtuRow)
+                    metaRow("uptime", dash.uptimeRow)
+                    metaRow("clients", dash.clientsRow)
                 }
                 .font(.system(size: 13, design: .monospaced))
                 .foregroundColor(Theme.text)

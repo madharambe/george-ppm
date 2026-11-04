@@ -12,7 +12,7 @@ executed here, not merely simulated.
 
 | Check | Result |
 |---|---|
-| **Swift compile + run** (`tools/swift_harness.cmd`) | **52/52 pass** — real swiftc, real execution |
+| **Swift compile + run** (`tools/swift_harness.cmd`) | **81/81 pass** — real swiftc, real execution |
 | iOS logic simulation (`tests/test_ios_logic_sim.py`) | **34/34 pass** |
 | Project preflight (`tools/ios_preflight.py`) | **61/61 pass** |
 | CoreBluetooth delegate selectors vs Apple docs | 10/10 exact match |
@@ -28,19 +28,22 @@ Telemetry.swift           COMPILES + RUNS   Foundation only
 TelemetryFormatter.swift  COMPILES + RUNS   Foundation only
 BleSpec.swift             COMPILES + RUNS   Foundation only  (BLE contract + LinkState)
 SyntheticTelemetry.swift  COMPILES + RUNS   Foundation only  (demo data generator)
+Dashboard.swift           COMPILES + RUNS   Foundation only  (all display wording + status)
 BleCentral.swift          needs CoreBluetooth   -> error: no such module 'CoreBluetooth'
 Simulator.swift           needs Combine         -> ObservableObject / @Published unknown
 ContentView.swift         needs SwiftUI         -> error: no such module 'SwiftUI'
 GeorgePPMApp.swift        needs SwiftUI         -> error: no such module 'SwiftUI'
 ```
 
-**4 of 8 files compile and execute here.** The four that cannot are exactly the
-Apple-framework layer: the CoreBluetooth adapter and the three SwiftUI files.
+**5 of 9 files compile and execute here.** The four that cannot are exactly the
+Apple-framework layer: the CoreBluetooth adapter, the Combine wrapper, and the two
+SwiftUI files. `ContentView` is now almost pure layout — every string it shows,
+and every "sensor absent" decision, comes from `Dashboard`, which *is* tested.
 
-The refactor that made this possible was deliberate: the BLE contract (UUIDs,
-device name, commands, `LinkState`) and the synthetic-data generator were pulled
+The refactor was deliberate: the BLE contract (UUIDs, device name, commands,
+`LinkState`), the synthetic-data generator and the presentation logic were pulled
 out of the Apple-only files into Foundation-only ones, so the parts most likely to
-silently drift are now compiled and tested on every run.
+silently drift are compiled and tested on every run.
 
 Check the boundary yourself:
 

@@ -81,8 +81,10 @@ print("=" * 66)
 app_src = "\n".join(read(os.path.join(app_dir, f)) for f in app_swift)
 test_src = "\n".join(read(os.path.join(test_dir, f)) for f in test_swift)
 
-for sym in ("Telemetry", "TelemetryFormatter", "BleCentral", "Simulator", "ContentView"):
-    check("defined in app sources: " + sym, re.search(r"(struct|class|enum|final class)\s+" + sym + r"\b", app_src) is not None)
+for sym in ("Telemetry", "TelemetryFormatter", "BleSpec", "LinkState", "SyntheticTelemetry",
+            "Dashboard", "BleCentral", "Simulator", "ContentView"):
+    check("defined in app sources: " + sym,
+          re.search(r"(struct|class|enum|final class)\s+" + sym + r"\b", app_src) is not None)
 
 fmt_src = read(os.path.join(app_dir, "TelemetryFormatter.swift")) if os.path.exists(os.path.join(app_dir, "TelemetryFormatter.swift")) else ""
 called = sorted(set(re.findall(r"TelemetryFormatter\.(\w+)", test_src)))
